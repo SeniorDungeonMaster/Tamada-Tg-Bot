@@ -1,68 +1,72 @@
-# Telegram lead bot for Render
+# Telegram lead bot
 
-Этот сервис принимает заявку с сайта на `POST /lead` и отправляет ее нужным пользователям в Telegram через бота.
+Небольшой Node.js-сервис, который принимает заявку с анкеты сайта и отправляет ее нужным пользователям через Telegram-бота.
 
-## Переменные Render
-
-Обязательные:
-
-- `TELEGRAM_BOT_TOKEN` - токен от BotFather.
-- `TELEGRAM_CHAT_IDS` - id получателей через запятую, например `123456789,987654321`.
-
-Опциональные:
-
-- `ALLOWED_ORIGINS` - домены сайта через запятую. Для быстрого старта можно оставить `*`.
-- `TELEGRAM_WEBHOOK_SECRET` - секрет для Telegram webhook. В `render.yaml` он генерируется автоматически.
-
-## Как получить chat_id
-
-1. Создайте бота в `@BotFather` и сохраните токен в `TELEGRAM_BOT_TOKEN`.
-2. Задеплойте сервис на Render.
-3. Задайте webhook для бота:
+## Как это работает
 
 ```text
-https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url=https://<RENDER_APP>.onrender.com/telegram/webhook
+GitHub Pages -> POST /api/lead -> этот сервер -> Telegram Bot API -> нужные chat_id
 ```
 
-Если вы вручную указали `TELEGRAM_WEBHOOK_SECRET`, добавьте его в URL:
-
-```text
-https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url=https://<RENDER_APP>.onrender.com/telegram/webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>
-```
-
-4. Каждый получатель должен открыть бота в Telegram и отправить `/start`.
-5. Бот ответит сообщением с `chat_id`.
-6. Добавьте эти id в `TELEGRAM_CHAT_IDS` на Render и перезапустите сервис.
-
-## Подключение сайта
-
-Если сайт открывается с этого же Render-сервиса, в `index.html` уже стоит:
-
-```html
-<form class="quiz-form" id="costForm" data-api-url="/lead">
-```
-
-Если сайт размещен отдельно, замените `data-api-url` на полный адрес Render:
-
-```html
-<form class="quiz-form" id="costForm" data-api-url="https://<RENDER_APP>.onrender.com/lead">
-```
-
-И поставьте `ALLOWED_ORIGINS` равным домену сайта, например:
-
-```text
-https://example.com
-```
+Токен Telegram-бота хранится только на сервере в переменных окружения и не попадает в `script.js`.
 
 ## Локальный запуск
 
+1. Скопируйте `.env.example` в `.env`.
+2. Заполните:
+   - `TELEGRAM_BOT_TOKEN` - токен из BotFather.
+   - `TELEGRAM_CHAT_IDS` - получатели через запятую.
+   - `ALLOWED_ORIGINS` - домены сайта, например `https://romanenkoevent.ru`.
+3. Запустите:
+
 ```bash
-pip install -r bot/requirements.txt
-python -m bot.app
+npm start
 ```
 
 Проверка:
 
 ```bash
-curl http://localhost:8000/healthz
+curl http://localhost:3000/health
 ```
+
+Endpoint для сайта:
+
+```text
+POST /api/lead
+```
+
+## Render
+
+Создайте Web Service:
+
+- Root Directory: `bot`
+- Runtime: Node
+- Build Command: пусто или `npm install`
+- Start Command: `npm start`
+
+В Environment добавьте:
+
+```env
+TELEGRAM_BOT_TOKEN=123456:ABC...
+TELEGRAM_CHAT_IDS=123456789,987654321
+ALLOWED_ORIGINS=https://romanenkoevent.ru
+```
+
+После деплоя вставьте URL сервиса в `script.js`:
+
+```js
+const LEAD_ENDPOINT = "https://your-service.onrender.com/api/lead";
+```
+
+## Как узнать chat_id
+
+1. Напишите любое сообщение своему Telegram-боту.
+2. Откройте:
+
+```text
+https://api.telegram.org/bot<token>/getUpdates
+```
+
+3. Найдите `message.chat.id`.
+
+Для группы добавьте бота в группу и тоже посмотрите `chat.id` через `getUpdates`.
